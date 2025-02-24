@@ -32,7 +32,7 @@ class TurtleDraw(Node):
         rclpy.spin_once(self, timeout_sec=distance / speed)
         msg.linear.x = 0.0
         self.publisher_.publish(msg)
-
+    
     def draw_square(self, side_length):
         for _ in range(4):
             self.draw_line(side_length)
@@ -60,7 +60,23 @@ class TurtleDraw(Node):
         rclpy.spin_once(self, timeout_sec=1.0)
         msg.angular.z = 0.0
         self.publisher_.publish(msg)
-
+    
+    def draw_drone(self):                  # change started **************************
+        self.pen_down()
+        for _ in range(4):
+            self.draw_line(2.83)  # sqrt(2) * side of the square to form the diamond
+            self.turn(90)
+            
+        self.pen_up()
+        for _ in range(4):
+            self.draw_line(2)
+            self.pen_down()
+            self.draw_circle(1)
+            self.pen_up()
+            self.turn(180)
+            self.draw_line(2)
+            self.turn(90)                 # change over ********************************
+            
     def pen_up(self):
         self.set_pen(off=True)
 
@@ -73,6 +89,7 @@ class TurtleDraw(Node):
 def main(args=None):
     rclpy.init(args=args)
     turtle_draw = TurtleDraw()
+    turtle_draw.draw_drone()             # here is the change  ****************************
     turtle_draw.pen_down()
     turtle_draw.draw_square(2.0)
     turtle_draw.pen_up()
