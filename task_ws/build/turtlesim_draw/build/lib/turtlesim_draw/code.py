@@ -61,7 +61,7 @@ class TurtleDraw(Node):
         msg.angular.z = 0.0
         self.publisher_.publish(msg)
     
-    def draw_drone(self):                  # change started **************************
+    def draw_drone(self):                  # change started *************************
         self.pen_down()
         for _ in range(4):
             self.draw_line(2.83)  # sqrt(2) * side of the square to form the diamond
