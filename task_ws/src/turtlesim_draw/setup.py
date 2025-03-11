@@ -20,7 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'turtlesim_draw = turtlesim_draw.turtle_draw:main',
+            'turtlesim_draw = turtlesim_draw.code:main',
         ],
     },
 )
