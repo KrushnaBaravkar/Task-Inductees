@@ -42,7 +42,7 @@ class TurtleDraw(Node):
         # Rotate to face target
         if abs(angle_diff) > 1e-3:
             self._rotate(angle_diff)
-        
+
         # Move forward
         self._move_straight(distance, speed)
         
@@ -57,41 +57,107 @@ class TurtleDraw(Node):
             Write your logic for drawing circle here.
             Below is a code segment just to guide you, how to execute your logic
         """
-        # Set up circular motion
-        self.set_pen(off=not was_pen_down)
-        angular_speed = speed / radius
-        duration = 2 * math.pi * radius / speed
-        
-        # Execute movement
+            # Move to the starting point (rightmost of the circle)
+        self.pen_up()  # Lift pen before teleporting
+        self.teleport(center_x + radius, center_y, 0.0)  
+        self.set_pen(off=not was_pen_down)  # Restore pen state
+
+         # Set up circular motion
+        angular_speed = speed / radius  # ω = v / r
+        duration = (2 * math.pi * radius) / speed  # Time to complete one full circle
+
+         # Publish movement command
         msg = Twist()
-        msg.linear.x = speed
-        msg.angular.z = angular_speed
+        msg.linear.x = speed  # Forward speed
+        msg.angular.z = angular_speed  # Angular velocity
         self.publisher_.publish(msg)
+
+           # Allow movement to continue for the duration of the circle
         rclpy.spin_once(self, timeout_sec=duration)
 
-    def _rotate(self):
+           # Stop movement after the circle is complete
+        msg.linear.x = 0.0
+        msg.angular.z = 0.0
+        self.publisher_.publish(msg)
+
+          # Restore original pen state
+        if not was_pen_down:
+            self.pen_up()
+            
+    def _rotate(self, angle):
         """
             Rotate by specified radians (positive counter-clockwise)
             Write code by yourself
         """
-
-    def _move_straight(self, distance, speed):
+        msg = Twist()
+        msg.angular.z = 1.0 if angle > 0 else -1.0
+        duration = abs(angle) / msg.angular.z
+        start_time = time.time()
+        while time.time() - start_time < duration:
+            self.publisher_.publish(msg)
+            time.sleep(0.1)
+        msg.angular.z = 0.0
+        self.publisher_.publish(msg)
+        self.current_theta += angle
+        
+    def _move_straight(self, distance, speed=1.0):
         """
             Move straight for specified distance
             Write code by yourself
         """
-
-    def _face_angle(self):
+        msg = Twist()
+        msg.linear.x = speed
+        duration = distance / speed
+        start_time = time.time()
+        while time.time() - start_time < duration:
+            self.publisher_.publish(msg)
+            time.sleep(0.1)
+        msg.linear.x = 0.0
+        self.publisher_.publish(msg)
+        
+    def _face_angle(self, target_angle):
         """
             Rotate to face specified angle (radians)
             Write code by yourself
         """
+        # Calculate required rotation
+        angle_diff = target_angle - self.current_theta
+    
+        # Normalize angle to the range [-π, π]
+        angle_diff = (angle_diff + math.pi) % (2 * math.pi) - math.pi  
+    
+        # Rotate by the computed angle
+        self._rotate(angle_diff)
+    
+        # Update current orientation
+        self.current_theta = target_angle   
 
     def pen_up(self):
         self.set_pen(off=True)
 
     def pen_down(self):
         self.set_pen(off=False)
+        
+    def draw_drone(self):
+        """Draw the drone as per the given specifications."""
+        
+        # Diamond shape
+        points = [(5,7), (7,5), (5,3), (3,5), (5,7)]
+        self.pen_down()
+        for x, y in points:
+            self.draw_line(x, y)
+        
+        # Extending lines
+        extensions = [(2,8), (8,8), (8,2), (2,2)]
+        center_points = [(3,5), (7,5), (5,3), (5,7)]
+        
+        for (cx, cy), (ex, ey) in zip(center_points, extensions):
+            self.draw_line(ex, ey)
+        
+        # Circles
+        circles = [(2,8), (8,8), (8,2), (2,2)]
+        for cx, cy in circles:
+            self.draw_circle(cx, cy, 1)
 
 def main(args=None):
     rclpy.init(args=args)
@@ -107,3 +173,4 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
+        
