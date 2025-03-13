@@ -140,24 +140,26 @@ class TurtleDraw(Node):
         
     def draw_drone(self):
         """Draw the drone as per the given specifications."""
-        
-        # Diamond shape
+
+        self.pan_down()
+        # drawing Diamond shape
         points = [(5,7), (7,5), (5,3), (3,5), (5,7)]
-        self.pen_down()
         for x, y in points:
             self.draw_line(x, y)
         
-        # Extending lines
-        extensions = [(2,8), (8,8), (8,2), (2,2)]
-        center_points = [(3,5), (7,5), (5,3), (5,7)]
-        
-        for (cx, cy), (ex, ey) in zip(center_points, extensions):
+        # drawing the extending lines
+        final_positions = [(2,8), (8,8), (8,2), (2,8)]
+        centers = [(5,7), (7,5), (5,3), (3,5)]
+
+        for (cx, cy), (ex, ey) in zip(centers, final_positions):
             self.draw_line(ex, ey)
+            self.draw_line(cx, cy)  
+
+        # Draw the four small circles at the ends of the extensions
+        for cx, cy in extensions:
+            self.draw_circle(cx, cy, 1)  # Using radius = 1
+
         
-        # Circles
-        circles = [(2,8), (8,8), (8,2), (2,2)]
-        for cx, cy in circles:
-            self.draw_circle(cx, cy, 1)
 
 def main(args=None):
     rclpy.init(args=args)
