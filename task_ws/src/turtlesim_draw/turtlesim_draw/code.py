@@ -163,10 +163,7 @@ def main(args=None):
     rclpy.init(args=args)
     turtle_draw = TurtleDraw()
     #Sample template to execute functions
-    turtle_draw.pen_down()
-    turtle_draw.draw_line() 
-    turtle_draw.pen_up()
-    turtle_draw.draw_circle()
+    turtle_draw.draw_drone()
     
     turtle_draw.destroy_node()
     rclpy.shutdown()
