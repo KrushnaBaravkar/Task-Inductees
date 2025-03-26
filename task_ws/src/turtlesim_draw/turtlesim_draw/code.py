@@ -3,6 +3,7 @@ from rclpy.node import Node
 from geometry_msgs.msg import Twist
 from turtlesim.srv import SetPen, Spawn, Kill
 import math
+import time
 
 class TurtleDraw(Node):
     def __init__(self):
@@ -50,70 +51,64 @@ class TurtleDraw(Node):
         self.current_x = end_x
         self.current_y = end_y
 
-    def draw_circle(self, center_x, center_y, radius, speed=1.0):
-        """Draw circle around specified center coordinates with given radius"""
-        was_pen_down = self.pen_is_down
-        """
-            Write your logic for drawing circle here.
-            Below is a code segment just to guide you, how to execute your logic
-        """
-            # Move to the starting point (rightmost of the circle)
-        self.pen_up()  # Lift pen before teleporting
-        self.teleport(center_x + radius, center_y, 0.0)  
-        self.set_pen(off=not was_pen_down)  # Restore pen state
-
-         # Set up circular motion
-        angular_speed = speed / radius  # ω = v / r
-        duration = (2 * math.pi * radius) / speed  # Time to complete one full circle
-
-         # Publish movement command
+    def draw_circle(self, radius):
         msg = Twist()
-        msg.linear.x = speed  # Forward speed
-        msg.angular.z = angular_speed  # Angular velocity
-        self.publisher_.publish(msg)
+        msg.linear.x = 1.0
+        msg.angular.z = 1.0 / radius
 
-           # Allow movement to continue for the duration of the circle
-        rclpy.spin_once(self, timeout_sec=duration)
+        start_time = time.time()
+        while time.time() - start_time < 6.28:
+            self.publisher_.publish(msg)
+            time.sleep(0.1)
 
-           # Stop movement after the circle is complete
         msg.linear.x = 0.0
         msg.angular.z = 0.0
         self.publisher_.publish(msg)
 
-          # Restore original pen state
-        if not was_pen_down:
-            self.pen_up()
             
-    def _rotate(self, angle):
-        """
-            Rotate by specified radians (positive counter-clockwise)
-            Write code by yourself
-        """
+    def _rotate(self, angle_deg):
+        """Rotates the turtle by a specified angle (in degrees)."""
+        angle_rad = math.radians(angle_deg)  # Convert degrees to radians
         msg = Twist()
-        msg.angular.z = 1.0 if angle > 0 else -1.0
-        duration = abs(angle) / msg.angular.z
+        msg.angular.z = 1.0 if angle_rad > 0 else -1.0  # Set direction
+
         start_time = time.time()
+        duration = abs(angle_rad) / 1.0  # Since angular velocity is 1.0 rad/s
+
+        # Keep rotating for the calculated duration
         while time.time() - start_time < duration:
             self.publisher_.publish(msg)
-            time.sleep(0.1)
+            time.sleep(0.1)  # Small delay for smooth movement
+
+        # Stop rotation
         msg.angular.z = 0.0
         self.publisher_.publish(msg)
-        self.current_theta += angle
+
+        # Update current orientation
+        self.current_theta += angle_rad
+        self.current_theta %= (2 * math.pi)  # Keep within [0, 2π]
         
-    def _move_straight(self, distance, speed=1.0):
-        """
-            Move straight for specified distance
-            Write code by yourself
-        """
+     def _move(self, distance, speed=1.0):
+        """Moves the turtle forward by a specified distance at a given speed."""
         msg = Twist()
-        msg.linear.x = speed
-        duration = distance / speed
+        msg.linear.x = speed  # Set forward speed
+        duration = abs(distance / speed)  # Calculate movement time
+
         start_time = time.time()
+
+        # Publish velocity command continuously for the duration
         while time.time() - start_time < duration:
             self.publisher_.publish(msg)
-            time.sleep(0.1)
+            time.sleep(0.1)  # Small delay to maintain smooth movement
+
+        # Stop the turtle after moving
         msg.linear.x = 0.0
         self.publisher_.publish(msg)
+    
+        # Update current position based on movement
+        self.current_x += distance * math.cos(self.current_theta)
+        self.current_y += distance * math.sin(self.current_theta)
+
         
     def _face_angle(self, target_angle):
         """
@@ -138,32 +133,44 @@ class TurtleDraw(Node):
     def pen_down(self):
         self.set_pen(off=False)
         
-    def draw_drone(self):
-        """Draw the drone as per the given specifications."""
-        
-        # Diamond shape
-        points = [(5,7), (7,5), (5,3), (3,5), (5,7)]
+    def draw_square(self):
+        self.pen_up()
+        self._move(2)
+        self._rotate(135)
         self.pen_down()
-        for x, y in points:
-            self.draw_line(x, y)
+        for _ in range(3):
+            self._move(2.83)
+            self._rotate(90)
         
-        # Extending lines
-        extensions = [(2,8), (8,8), (8,2), (2,2)]
-        center_points = [(3,5), (7,5), (5,3), (5,7)]
+        self._move(2.83)
+            
         
-        for (cx, cy), (ex, ey) in zip(center_points, extensions):
-            self.draw_line(ex, ey)
-        
-        # Circles
-        circles = [(2,8), (8,8), (8,2), (2,2)]
-        for cx, cy in circles:
-            self.draw_circle(cx, cy, 1)
+
+    def draw_pattern(self):  # Renamed from draw_circle to avoid conflict
+        for _ in range(4):
+            self.pen_up()
+            self._rotate(90)
+            self._move(1.415)
+            self._rotate(-90)
+            self.pen_down()
+            self._move(2.83)
+            self._rotate(180)
+            self._move(1)
+            self._rotate(90)
+            self.draw_circle(1)  # Fixed function call
+            self._rotate(-90)
+            self.pen_up()
+            self._move(1.83)
+            self._rotate(-90)
+            self._move(1.38)
 
 def main(args=None):
     rclpy.init(args=args)
     turtle_draw = TurtleDraw()
-    #Sample template to execute functions
-    turtle_draw.draw_drone()
+    
+    # Execute drawing function
+    turtle_draw.draw_square()
+    turtle_draw.draw_pattern()  # Use renamed function
     
     turtle_draw.destroy_node()
     rclpy.shutdown()
